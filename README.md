@@ -7,50 +7,62 @@ A lightweight personal competitive programming and DSA training dashboard built 
 - View current rating, peak rating, rank
 - View rating history as a simple SVG chart
 - Manual refresh of profile data
-- Data persisted in PostgreSQL (Supabase)
+- Data persisted in PostgreSQL
 
 ## Tech Stack
 - Backend: Java 21, Spring Boot 4, Spring Data JPA, Flyway, RestClient
-- Database: PostgreSQL (Supabase)
-- Frontend: Plain HTML, CSS, Vanilla JavaScript (no frameworks/build tools)
+- Database: PostgreSQL (local for testing, Supabase/Postgres for production)
+- Frontend: Plain HTML, CSS, Vanilla JavaScript (separate `frontend/` folder for Vercel deployment)
 
 ## Prerequisites
 - Java 21
 - Maven (or use included mvnw)
+- PostgreSQL (for local testing) or use Supabase/Postgres
 
-## Configuration
-Set environment variables or update `application.properties`. For production, use environment variables:
+## Running Locally (Testing with local DB)
 
-- `SPRING_DATASOURCE_URL`
-- `SPRING_DATASOURCE_USERNAME`
-- `SPRING_DATASOURCE_PASSWORD`
-- `PORT`
-
-The app is configured to use schema `cp_forge` and Flyway migrations from `classpath:db/migration`.
-
-## Running Locally
+### 1) Start local PostgreSQL
+Using Docker:
 ```bash
+docker run -d --name cpforge-db \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=cp_forge_test \
+  -p 5432:5432 \
+  postgres:16
+```
+
+Or create a DB named `cp_forge_test` in your local Postgres instance.
+
+### 2) Run backend with local profile
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+```
+
+The app will use `application-local.properties` (local DB) with Flyway creating schema `cp_forge`. Runs on `http://localhost:8080`.
+
+### 3) Run frontend separately
+```bash
+cd frontend
+echo "window.CP_FORGE_API_BASE = 'http://localhost:8080';" > config.js
+python3 -m http.server 3000
+```
+Open `http://localhost:3000`. CORS is configured to allow localhost.
+
+## Running with Production DB
+Use environment variables (or default `application.properties`):
+```bash
+SPRING_DATASOURCE_URL="jdbc:postgresql://..." \
+SPRING_DATASOURCE_USERNAME="..." \
+SPRING_DATASOURCE_PASSWORD="..." \
 ./mvnw spring-boot:run
 ```
-
-The app will start on `http://localhost:8080`. The dashboard is served from `static/index.html`.
-
-## Building
-```bash
-./mvnw clean package
-java -jar target/cp-forge-0.0.1-SNAPSHOT.jar
-```
+Or just run without local profile to use the configured DB.
 
 ## Tests
 ```bash
 ./mvnw test
 ```
-
-## Deployment (Render)
-- Build Command: `./mvnw clean package -DskipTests`
-- Start Command: `java -jar target/cp-forge-0.0.1-SNAPSHOT.jar`
-- Set environment variables for database credentials
-- Ensure the database allows connections from Render
 
 ## API Endpoints
 - `POST /api/codeforces/profiles` - Add/refresh a profile (body: `{"handle": "username"}`)
@@ -61,22 +73,14 @@ java -jar target/cp-forge-0.0.1-SNAPSHOT.jar
 ## Deploying as separate frontend/backend (Vercel + Render)
 
 ### Backend (Render)
-1. Create a new Web Service from this GitHub repo.
+1. Create a new Web Service from this repo.
 2. Build Command: `./mvnw clean package -DskipTests`
 3. Start Command: `java -jar target/cp-forge-0.0.1-SNAPSHOT.jar`
-4. Environment Variables (set in Render):
-   - `SPRING_DATASOURCE_URL` (e.g. `jdbc:postgresql://...:5432/postgres?sslmode=require`)
-   - `SPRING_DATASOURCE_USERNAME`
-   - `SPRING_DATASOURCE_PASSWORD`
-   - `PORT` (usually auto-set by Render)
-5. Deploy. Note your Render URL (e.g. `https://your-app.onrender.com`).
-
-CORS is configured to allow `http://localhost:*` and `https://*.vercel.app`.
+4. Set environment variables: `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD` (Render sets `PORT`).
+5. Deploy.
 
 ### Frontend (Vercel)
-1. Import this repo to Vercel.
-2. Set Root Directory to `frontend/`.
-3. Framework Preset: `Other` (static site, no build).
-4. Build Command: leave empty. Output Directory: `.` 
-5. Edit `frontend/config.js` before deploy or after - set `window.CP_FORGE_API_BASE = "https://your-app.onrender.com"`.
-6. Deploy. Your app will call the Render API directly.
+1. Import repo to Vercel, set Root Directory to `frontend/`.
+2. Framework: Other (static). Build command empty, output `.` 
+3. Set `frontend/config.js` to point to your Render URL: `window.CP_FORGE_API_BASE = "https://your-app.onrender.com";`
+4. Deploy.
