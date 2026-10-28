@@ -57,3 +57,26 @@ java -jar target/cp-forge-0.0.1-SNAPSHOT.jar
 - `GET /api/codeforces/profiles` - List all saved profiles
 - `GET /api/codeforces/profiles/{handle}` - Get a specific profile
 - `POST /api/codeforces/profiles/{handle}/refresh` - Refresh a profile
+
+## Deploying as separate frontend/backend (Vercel + Render)
+
+### Backend (Render)
+1. Create a new Web Service from this GitHub repo.
+2. Build Command: `./mvnw clean package -DskipTests`
+3. Start Command: `java -jar target/cp-forge-0.0.1-SNAPSHOT.jar`
+4. Environment Variables (set in Render):
+   - `SPRING_DATASOURCE_URL` (e.g. `jdbc:postgresql://...:5432/postgres?sslmode=require`)
+   - `SPRING_DATASOURCE_USERNAME`
+   - `SPRING_DATASOURCE_PASSWORD`
+   - `PORT` (usually auto-set by Render)
+5. Deploy. Note your Render URL (e.g. `https://your-app.onrender.com`).
+
+CORS is configured to allow `http://localhost:*` and `https://*.vercel.app`.
+
+### Frontend (Vercel)
+1. Import this repo to Vercel.
+2. Set Root Directory to `frontend/`.
+3. Framework Preset: `Other` (static site, no build).
+4. Build Command: leave empty. Output Directory: `.` 
+5. Edit `frontend/config.js` before deploy or after - set `window.CP_FORGE_API_BASE = "https://your-app.onrender.com"`.
+6. Deploy. Your app will call the Render API directly.

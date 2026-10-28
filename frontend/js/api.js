@@ -1,8 +1,9 @@
-const API_BASE = '';
+const API_BASE = (typeof window !== 'undefined' && window.CP_FORGE_API_BASE) ? window.CP_FORGE_API_BASE : '';
 
 async function apiRequest(url, options = {}) {
     try {
-        const response = await fetch(url, {
+        const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
+        const response = await fetch(fullUrl, {
             headers: {
                 'Content-Type': 'application/json',
                 ...options.headers
